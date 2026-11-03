@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SwingDog Studios</title>
+<meta name="description" content="SwingDog Studios is a small Minnesota studio making games, simulators, stories and shows: BigUnda, Chasing Wonder, Molly Marine and Christoff Elling.">
+<meta property="og:title" content="SwingDog Studios">
+<meta property="og:description" content="Games, simulators, stories and shows from Minnesota.">
+<meta property="og:image" content="https://swingdogstudios.com/og.png">
+<meta property="og:url" content="https://swingdogstudios.com/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#181818; --panel:#202020; --line:#2e2e2e;
+    --ink:#f4f4f2; --muted:#a3a3a0; --accent:#ffffff;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:Montserrat,system-ui,-apple-system,Segoe UI,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+  nav{display:flex;justify-content:space-between;align-items:center;padding:20px 0}
+  nav .brand{font-weight:700;letter-spacing:.02em;text-decoration:none}
+  nav ul{display:flex;gap:24px;list-style:none;margin:0;padding:0;font-size:14px;font-weight:500}
+  nav ul a{text-decoration:none;color:var(--muted)} nav ul a:hover{color:var(--ink)}
+  .hero{text-align:center;padding:24px 0 56px}
+  .hero img{width:min(300px,64vw);height:auto;display:block;margin:0 auto}
+  .hero p{max-width:560px;margin:36px auto 0;color:var(--muted);font-size:18px}
+  h2{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 24px}
+  section{padding:56px 0;border-top:1px solid var(--line)}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:28px;display:flex;flex-direction:column;gap:10px;transition:border-color .2s,transform .2s}
+  .card:hover{border-color:#555;transform:translateY(-2px)}
+  .tag{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .card h3{margin:0;font-size:24px;font-weight:700}
+  .card p{margin:0;color:#cfcfcc;font-size:15px}
+  .card .more{margin-top:auto;padding-top:8px;font-size:14px;font-weight:600}
+  .card .more a{text-decoration:none;border-bottom:1px solid #666}
+  .card .more a:hover{border-color:var(--ink)}
+  .card .soon{color:var(--muted);font-weight:500}
+  .about{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start}
+  .about p{margin:0 0 14px;color:#cfcfcc}
+  .contact a.btn{display:inline-block;margin-top:6px;padding:12px 22px;border:1px solid var(--ink);border-radius:999px;text-decoration:none;font-weight:600}
+  .contact a.btn:hover{background:var(--ink);color:var(--bg)}
+  footer{border-top:1px solid var(--line);padding:28px 0 40px;color:var(--muted);font-size:13px}
+  @media (max-width:720px){
+    nav ul{gap:16px;font-size:13px}
+    .grid,.about{grid-template-columns:1fr}
+    .about{gap:0}
+    .hero p{font-size:16px}
+    section{padding:44px 0}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="brand" href="#top">SwingDog</a>
+    <ul>
+      <li><a href="#work">Work</a></li>
+      <li><a href="#about">About</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </nav>
+
+  <header class="hero" id="top">
+    <img src="logo.png" width="591" height="720" alt="SwingDog Studios logo: a scruffy dog on a rope swing">
+    <p>A small Minnesota studio making games, simulators, stories and shows for people who like to build things and wonder about them.</p>
+  </header>
+
+  <section id="work">
+    <h2>Work</h2>
+    <div class="grid">
+      <article class="card">
+        <span class="tag">Web app · Aquarium planner</span>
+        <h3>BigUnda</h3>
+        <p>Build your space. Grow your aquarium. Make it real. Design a tank in a 3D model of your own room, watch it grow in over months, then buy the real gear.</p>
+        <div class="more"><a href="https://bigunda.com">Visit bigunda.com</a></div>
+      </article>
+      <article class="card">
+        <span class="tag">YouTube series</span>
+        <h3>Chasing Wonder</h3>
+        <p>A reef keeping series following the build of a 720-gallon basement reef, from empty room to living ocean, and the curiosity that drives it.</p>
+        <div class="more"><span class="soon">Coming soon</span></div>
+      </article>
+      <article class="card">
+        <span class="tag">VR game · Meta Quest 3</span>
+        <h3>Molly Marine</h3>
+        <p>A first-person VR action game built for Meta Quest 3.</p>
+        <div class="more"><span class="soon">In development</span></div>
+      </article>
+      <article class="card">
+        <span class="tag">Novel</span>
+        <h3>Christoff Elling</h3>
+        <p>A novel in progress.</p>
+        <div class="more"><span class="soon">In progress</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section id="about">
+    <h2>About</h2>
+    <div class="about">
+      <p>SwingDog Studios is an independent studio based in the Twin Cities area of Minnesota. We make things we would want to use, play and read ourselves, and we take our time getting them right.</p>
+      <p>The studio was founded by Blake Vosburgh, a product leader who spent nearly two decades building and scaling software before turning to games, simulation and storytelling.</p>
+    </div>
+  </section>
+
+  <section id="contact" class="contact">
+    <h2>Contact</h2>
+    <p>Press, partnerships, or just want to say hi?</p>
+    <a class="btn" href="mailto:hello@swingdogstudios.com">hello@swingdogstudios.com</a>
+  </section>
+
+  <footer>© <span id="y">2026</span> SwingDog Studios LLC · Minnesota</footer>
+</div>
+<script>document.getElementById('y').textContent=new Date().getFullYear()</script>
+</body>
+</html>
