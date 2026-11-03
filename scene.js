@@ -1,6 +1,9 @@
 // SwingDog Studios: a dive from a starry night sky into the deep sea.
-// One fullscreen sky/sea shader plus a few point clouds and jellyfish. No textures, no models.
+// A fullscreen sky/sea shader, a beach-and-reef cove on both sides, fish, jellies and deep-sea
+// creatures. Everything is procedural: no textures, no models.
 import * as THREE from './vendor/three.module.min.js';
+import { buildSide } from './reef.js';
+import { makeDumbo, makeAngler } from './deep.js';
 
 const canvas = document.getElementById('world');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -23,7 +26,7 @@ function start() {
   const camera = new THREE.PerspectiveCamera(FOV, innerWidth / innerHeight, 0.1, 200);
   camera.position.set(0, 0, 30);
 
-  const TOP = 22, BOTTOM = -80; // camera y at top and bottom of the page
+  const TOP = 17, BOTTOM = -80; // camera y at top and bottom of the page
   const SKY = 60, DEEP = -110;  // world extents for particles
   const BG_DIST = 40;
 
@@ -35,6 +38,7 @@ function start() {
     uAspect: { value: innerWidth / innerHeight },
     uPR: { value: renderer.getPixelRatio() },
     uScale: { value: innerHeight / 2 / Math.tan(THREE.MathUtils.degToRad(FOV / 2)) },
+    uCamPos: { value: camera.position },
   };
 
   // ---------- sky + sea backdrop ----------
@@ -65,7 +69,7 @@ function start() {
             col = mix(vec3(0.26, 0.17, 0.42), vec3(0.11, 0.10, 0.30), smoothstep(0.0, 0.25, h));
             col = mix(col, vec3(0.025, 0.035, 0.12), smoothstep(0.2, 1.0, h));
             // a soft moon
-            vec2 m = vec2(wx - min(22.0, uHalfH * uAspect * 0.55), wy - 35.0);
+            vec2 m = vec2(wx - min(20.0, uHalfH * uAspect * 0.5), wy - 29.5);
             float d = length(m);
             col += vec3(1.0, 0.95, 0.85) * smoothstep(1.55, 1.4, d) * 0.85;
             col += vec3(0.55, 0.55, 0.9) * exp(-d * 0.22) * 0.3;
@@ -228,7 +232,7 @@ function start() {
   const bellGeo = new THREE.SphereGeometry(1, 28, 12, 0, Math.PI * 2, 0, Math.PI / 2);
   const jellies = [];
   const jellyColors = ['#ff9ad5', '#9ad7ff', '#c8a2ff', '#8affd8', '#ffb38a'];
-  const jellyCount = small ? 4 : 6;
+  const jellyCount = small ? 3 : 5;
   for (let i = 0; i < jellyCount; i++) {
     const color = new THREE.Color(jellyColors[i % jellyColors.length]);
     const shared = { uTime: U.uTime, uPhase: { value: Math.random() * 6.28 }, uColor: { value: color } };
@@ -257,10 +261,26 @@ function start() {
     }
     const s = R(0.9, 1.7);
     group.scale.setScalar(s);
-    group.userData = { x: R(-18, 18) * (small ? 0.6 : 1), y: R(-70, -12), z: R(-14, 6), ph: Math.random() * 6.28, sp: R(0.15, 0.3) };
+    group.userData = { x: R(-12, 12), y: R(-52, -14), z: R(-14, 6), ph: Math.random() * 6.28, sp: R(0.15, 0.3) };
     scene.add(group);
     jellies.push(group);
   }
+
+  // ---------- the cove: beach, reef wall and its residents on both sides ----------
+  const sides = [buildSide(U, 3, small), buildSide(U, 11, small)];
+  sides[0].group.scale.x = -1; // left side is mirrored
+  // turn both walls a little toward the viewer so the reef face reads
+  sides[0].group.rotation.y = -0.3; sides[1].group.rotation.y = 0.3;
+  sides.forEach(sd => scene.add(sd.group));
+  // ---------- the deep ----------
+  const deep = [
+    { c: makeDumbo(U), base: new THREE.Vector3(8, -63, -3) },
+    { c: makeDumbo(U, { color: [0.85, 0.62, 1.0] }), base: new THREE.Vector3(-10, -72, -10) },
+    { c: makeAngler(U), base: new THREE.Vector3(-7, -83, 0) },
+    { c: makeAngler(U), base: new THREE.Vector3(11, -94, -9) },
+  ];
+  deep.forEach((d, i) => { d.c.root.scale.setScalar(i < 2 ? 1.5 : 1.7); scene.add(d.c.root); });
+  let spread = 1;
 
   // ---------- tap for magic: sparks in the sky, bubbles in the sea ----------
   const BURST = 160;
@@ -336,6 +356,7 @@ function start() {
   // ---------- loop ----------
   let clock = 0, last = performance.now();
   let camY = TOP, mx = 0, my = 0, tmx = 0, tmy = 0;
+  const tmpBase = new THREE.Vector3();
   addEventListener('pointermove', e => { tmx = e.clientX / innerWidth - 0.5; tmy = e.clientY / innerHeight - 0.5; }, { passive: true });
 
   function progress() {
@@ -348,6 +369,13 @@ function start() {
     camera.updateProjectionMatrix();
     U.uAspect.value = camera.aspect;
     U.uScale.value = innerHeight / 2 / Math.tan(THREE.MathUtils.degToRad(FOV / 2));
+    // keep the reef walls at the edges of the view whatever the screen shape
+    const halfW = Math.tan(THREE.MathUtils.degToRad(FOV / 2)) * 30 * camera.aspect;
+    const edge = Math.max(5.2, halfW * (camera.aspect < 1 ? 1.0 : 0.78));
+    sides[0].group.position.x = -edge; sides[1].group.position.x = edge;
+    const turn = camera.aspect < 1 ? 0.06 : 0.3;
+    sides[0].group.rotation.y = -turn; sides[1].group.rotation.y = turn;
+    spread = Math.min(1, Math.max(0.35, camera.aspect / 1.6));
   }
   addEventListener('resize', resize);
   resize();
@@ -365,9 +393,11 @@ function start() {
     camera.position.set(mx * 4, camY - my * 2, 30);
     camera.lookAt(mx * 1.5, camY, 0);
     U.uCamY.value = camY; U.uCamX.value = mx * 4;
+    sides.forEach(sd => sd.update(clock));
+    for (const d of deep) { tmpBase.set(d.base.x * spread, d.base.y, d.base.z); d.c.update(clock, tmpBase); }
     for (const j of jellies) {
       const d = j.userData;
-      j.position.set(d.x + Math.sin(clock * 0.1 + d.ph) * 3, d.y + Math.sin(clock * d.sp + d.ph) * 2.2, d.z);
+      j.position.set(d.x * spread + Math.sin(clock * 0.1 + d.ph) * 3, d.y + Math.sin(clock * d.sp + d.ph) * 2.2, d.z);
       j.rotation.z = Math.sin(clock * 0.3 + d.ph) * 0.18;
     }
     renderer.render(scene, camera);
