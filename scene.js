@@ -1,6 +1,7 @@
 // SwingDog Studios: a dive from a starry night sky into the deep sea.
-// One fullscreen sky/sea shader plus a few point clouds and jellyfish. No textures, no models.
+// One fullscreen sky/sea shader, a few point clouds, and glowing sea creatures. No textures, no models.
 import * as THREE from './vendor/three.module.min.js';
+import { makeManta, makeTurtle, makeWhale, makeSchool, makeComb, makeDumbo, makeAngler } from './creatures.js';
 
 const canvas = document.getElementById('world');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -257,10 +258,25 @@ function start() {
     }
     const s = R(0.9, 1.7);
     group.scale.setScalar(s);
-    group.userData = { x: R(-18, 18) * (small ? 0.6 : 1), y: R(-70, -12), z: R(-14, 6), ph: Math.random() * 6.28, sp: R(0.15, 0.3) };
+    group.userData = { x: R(-18, 18) * (small ? 0.6 : 1), y: R(-52, -12), z: R(-14, 6), ph: Math.random() * 6.28, sp: R(0.15, 0.3) };
     scene.add(group);
     jellies.push(group);
   }
+
+  // ---------- more residents, shallow to deep ----------
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  const life = [
+    makeTurtle(U, { y: -8, z: -4, speed: 1.4, span: 80, offset: 10, dir: 1 }),
+    makeSchool(U, { count: small ? 40 : 70, center: V(-11, -14, -6) }),
+    makeSchool(U, { count: small ? 25 : 45, center: V(13, -27, -10), color: [0.6, 0.95, 1.0] }),
+    makeManta(U, { y: -21, z: -8, speed: 1.1, span: 100, offset: 60, dir: -1 }),
+    makeWhale(U, { y: -36, z: -48, speed: 0.75, span: 170, offset: 40, dir: 1 }),
+    makeComb(U, V(-9, -33, 0)), makeComb(U, V(10, -42, -4)), makeComb(U, V(-3, -47, -10)),
+    makeDumbo(U, V(8, -60, -2)), makeDumbo(U, V(-10, -69, -9), [0.82, 0.62, 1.0]),
+    makeAngler(U, V(-8, -80, 0)), makeAngler(U, V(10, -90, -6), true),
+  ];
+  life.forEach(c => scene.add(c.root));
+  let spread = 1;
 
   // ---------- tap for magic: sparks in the sky, bubbles in the sea ----------
   const BURST = 160;
@@ -348,6 +364,7 @@ function start() {
     camera.updateProjectionMatrix();
     U.uAspect.value = camera.aspect;
     U.uScale.value = innerHeight / 2 / Math.tan(THREE.MathUtils.degToRad(FOV / 2));
+    spread = Math.min(1, Math.max(0.35, camera.aspect / 1.6));
   }
   addEventListener('resize', resize);
   resize();
@@ -365,6 +382,7 @@ function start() {
     camera.position.set(mx * 4, camY - my * 2, 30);
     camera.lookAt(mx * 1.5, camY, 0);
     U.uCamY.value = camY; U.uCamX.value = mx * 4;
+    for (const c of life) c.update(clock, spread);
     for (const j of jellies) {
       const d = j.userData;
       j.position.set(d.x + Math.sin(clock * 0.1 + d.ph) * 3, d.y + Math.sin(clock * d.sp + d.ph) * 2.2, d.z);
