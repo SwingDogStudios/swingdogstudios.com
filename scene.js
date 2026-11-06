@@ -20,10 +20,10 @@ function start() {
   renderer.setPixelRatio(Math.min(devicePixelRatio, small ? 1.5 : 1.75));
   const scene = new THREE.Scene();
   const FOV = 50;
-  const camera = new THREE.PerspectiveCamera(FOV, innerWidth / innerHeight, 0.1, 200);
+  const camera = new THREE.PerspectiveCamera(FOV, innerWidth / innerHeight, 0.1, 1200);
   camera.position.set(0, 0, 30);
 
-  const TOP = 22, BOTTOM = -80; // camera y at top and bottom of the page
+  const TOP = 17, BOTTOM = -80; // camera y at top and bottom of the page
   const SKY = 60, DEEP = -110;  // world extents for particles
   const BG_DIST = 40;
 
@@ -35,9 +35,26 @@ function start() {
     uAspect: { value: innerWidth / innerHeight },
     uPR: { value: renderer.getPixelRatio() },
     uScale: { value: innerHeight / 2 / Math.tan(THREE.MathUtils.degToRad(FOV / 2)) },
+    uTanHalf: { value: Math.tan(THREE.MathUtils.degToRad(FOV / 2)) },
+    uCamRot: { value: new THREE.Matrix3() },
+    uRes: { value: new THREE.Vector2(1, 1) },
   };
 
-  // ---------- sky + sea backdrop ----------
+  // ---------- shared sky (used by the backdrop and by the sea's reflections) ----------
+  const SKY_GLSL = /* glsl */ `
+    uniform float uAspect;
+    vec3 moonDir(){ return normalize(vec3(min(0.42, 0.3 * uAspect), 0.3, -1.0)); }
+    vec3 skyCol(vec3 d){
+      float e = d.y;
+      vec3 col = mix(vec3(0.30, 0.19, 0.46), vec3(0.11, 0.10, 0.30), smoothstep(0.0, 0.14, e));
+      col = mix(col, vec3(0.025, 0.035, 0.12), smoothstep(0.12, 0.75, e));
+      float ang = acos(clamp(dot(d, moonDir()), -1.0, 1.0));
+      col += vec3(1.0, 0.95, 0.85) * smoothstep(0.036, 0.032, ang) * 0.85;
+      col += vec3(0.55, 0.55, 0.9) * exp(-ang * 9.0) * 0.32;
+      return col;
+    }`;
+
+  // ---------- sky + sea backdrop: a per-pixel view ray, so it lines up with the 3D sea ----------
   const bg = new THREE.Mesh(
     new THREE.PlaneGeometry(2, 2),
     new THREE.ShaderMaterial({
@@ -46,63 +63,51 @@ function start() {
       depthTest: false,
       vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
       fragmentShader: `
-        
         varying vec2 vUv;
-        uniform float uTime, uCamY, uCamX, uHalfH, uAspect;
+        uniform float uTime, uCamY, uCamX, uTanHalf;
+        uniform mat3 uCamRot;
+        ${SKY_GLSL}
         float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-        float waterline(float x, float t){
-          return 0.55*sin(x*0.35 + t*0.8) + 0.25*sin(x*0.9 - t*1.3) + 0.12*sin(x*2.1 + t*2.0);
-        }
         void main(){
           float t = uTime;
-          float wy = uCamY + (vUv.y - 0.5) * 2.0 * uHalfH;
-          float wx = uCamX + (vUv.x - 0.5) * 2.0 * uHalfH * uAspect;
-          float surf = waterline(wx, t);
+          vec2 ndc = vUv * 2.0 - 1.0;
+          vec3 d = normalize(uCamRot * vec3(ndc.x * uTanHalf * uAspect, ndc.y * uTanHalf, -1.0));
+          float lxz = max(length(d.xz), 1e-3);
+          float ax = d.x / lxz * 40.0, ay = d.y / lxz * 40.0;   // the sky as a flat screen 40 units away
           vec3 col;
-          if (wy > surf) {
-            // night sky: dusk violet at the horizon to deep indigo overhead
-            float h = clamp((wy - surf) / 55.0, 0.0, 1.0);
-            col = mix(vec3(0.26, 0.17, 0.42), vec3(0.11, 0.10, 0.30), smoothstep(0.0, 0.25, h));
-            col = mix(col, vec3(0.025, 0.035, 0.12), smoothstep(0.2, 1.0, h));
-            // a soft moon
-            vec2 m = vec2(wx - min(22.0, uHalfH * uAspect * 0.55), wy - 35.0);
-            float d = length(m);
-            col += vec3(1.0, 0.95, 0.85) * smoothstep(1.55, 1.4, d) * 0.85;
-            col += vec3(0.55, 0.55, 0.9) * exp(-d * 0.22) * 0.3;
-            // aurora ribbon
-            float a = sin(wx*0.12 + sin(wx*0.05 + t*0.15)*2.0 + t*0.1);
-            float band = exp(-pow((wy - 26.0 - a*4.0) / 3.5, 2.0));
-            col += vec3(0.15, 0.55, 0.5) * band * 0.22 * (0.6 + 0.4*sin(wx*0.3 + t*0.4));
-            // a shooting star every few seconds
-            float cyc = floor(t / 6.5); float k = fract(t / 6.5);
-            vec2 s0 = vec2((hash(vec2(cyc, 1.0)) - 0.5) * 60.0, 30.0 + hash(vec2(cyc, 2.0)) * 20.0);
-            vec2 dir = normalize(vec2(-1.0, -0.45));
-            vec2 head = s0 + dir * k * 70.0;
-            vec2 rel = vec2(wx, wy) - head;
-            float along = dot(rel, -dir); float across = abs(dot(rel, vec2(-dir.y, dir.x)));
-            float streak = step(0.0, along) * smoothstep(9.0, 0.0, along) * smoothstep(0.18, 0.0, across);
-            col += vec3(1.0, 0.95, 0.8) * streak * smoothstep(0.32, 0.0, k) * 1.2;
-            // shimmer on the water's top
-            col += vec3(0.6, 0.6, 0.9) * exp(-(wy - surf) * 2.5) * 0.25;
+          if (uCamY > 0.0) {
+            if (d.y > 0.0) {
+              col = skyCol(d);
+              // aurora ribbon
+              float a = sin(ax*0.12 + sin(ax*0.05 + t*0.15)*2.0 + t*0.1);
+              float band = exp(-pow((ay - 13.0 - a*3.5) / 3.2, 2.0));
+              col += vec3(0.15, 0.55, 0.5) * band * 0.2 * (0.6 + 0.4*sin(ax*0.3 + t*0.4));
+              // a shooting star every few seconds
+              float cyc = floor(t / 6.5); float k = fract(t / 6.5);
+              vec2 s0 = vec2((hash(vec2(cyc, 1.0)) - 0.5) * 60.0, 12.0 + hash(vec2(cyc, 2.0)) * 16.0);
+              vec2 sd = normalize(vec2(-1.0, -0.45));
+              vec2 rel = vec2(ax, ay) - (s0 + sd * k * 70.0);
+              float along = dot(rel, -sd); float across = abs(dot(rel, vec2(-sd.y, sd.x)));
+              float streak = step(0.0, along) * smoothstep(9.0, 0.0, along) * smoothstep(0.18, 0.0, across);
+              col += vec3(1.0, 0.95, 0.8) * streak * smoothstep(0.32, 0.0, k) * 1.2 * step(1.0, ay);
+            } else {
+              // far sea beyond the waves: the horizon fading into dark water
+              col = skyCol(normalize(vec3(d.x, 0.0, d.z))) * (1.0 - smoothstep(0.0, 0.25, -d.y) * 0.6);
+            }
           } else {
             // under the sea
-            float depth = surf - wy;
+            float wy = uCamY + ay, wx = uCamX + ax;
+            float depth = max(0.0, -wy);
             col = mix(vec3(0.07, 0.36, 0.43), vec3(0.02, 0.13, 0.22), smoothstep(0.0, 35.0, depth));
             col = mix(col, vec3(0.006, 0.02, 0.045), smoothstep(30.0, 95.0, depth));
-            // god rays
             float r = sin(wx*0.42 + wy*0.18 + t*0.25) * sin(wx*0.23 - wy*0.07 - t*0.17 + 1.7);
-            float rays = smoothstep(0.25, 1.0, r) * exp(-depth * 0.045);
-            col += vec3(0.45, 0.85, 0.85) * rays * 0.28;
-            // caustics near the surface
+            col += vec3(0.45, 0.85, 0.85) * smoothstep(0.25, 1.0, r) * exp(-depth * 0.045) * 0.28;
             vec2 p = vec2(wx, wy) * 0.9;
             float c = sin(p.x + sin(p.y*1.3 + t)) * sin(p.y*0.8 + sin(p.x*1.1 - t*0.8));
             col += vec3(0.4, 0.9, 0.9) * pow(abs(c), 6.0) * 0.35 * exp(-depth * 0.18);
-            // bright underside of the surface
             col += vec3(0.5, 0.9, 1.0) * exp(-depth * 1.8) * 0.5;
-            // faint glow of the sea floor
             col += vec3(0.05, 0.12, 0.16) * smoothstep(85.0, 110.0, depth) * (0.5 + 0.5*sin(wx*0.2 + t*0.2));
           }
-          // vignette
           vec2 q = vUv - 0.5;
           col *= 1.0 - dot(q, q) * 0.9;
           gl_FragColor = vec4(col, 1.0);
@@ -112,6 +117,107 @@ function start() {
   bg.frustumCulled = false;
   bg.renderOrder = -10;
   scene.add(bg);
+
+  // ---------- the sea surface: Gerstner swell on a grid that is dense near the viewer ----------
+  const ocean = (() => {
+    const COLS = small ? 120 : 200, ROWS = small ? 110 : 180;
+    const pos = new Float32Array(COLS * ROWS * 3);
+    for (let j = 0; j < ROWS; j++) {
+      const z = 44 - 760 * Math.pow(j / (ROWS - 1), 2.4);
+      for (let i = 0; i < COLS; i++) {
+        const u = (i / (COLS - 1)) * 2 - 1;
+        const k = (j * COLS + i) * 3;
+        pos[k] = Math.sign(u) * 520 * Math.pow(Math.abs(u), 1.9); pos[k + 1] = 0; pos[k + 2] = z;
+      }
+    }
+    const idx = [];
+    for (let j = 0; j < ROWS - 1; j++) for (let i = 0; i < COLS - 1; i++) {
+      const a = j * COLS + i, b = a + 1, c = a + COLS, d = c + 1;
+      idx.push(a, c, b, b, c, d);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setIndex(idx);
+    const m = new THREE.ShaderMaterial({
+      uniforms: U,
+      side: THREE.DoubleSide,
+      vertexShader: /* glsl */ `
+        uniform float uTime;
+        varying vec3 vW; varying vec3 vN; varying float vH;
+        vec3 wave(vec2 dir, float L, float A, vec2 p, float fade, inout vec3 n){
+          float k = 6.2832 / L, w = sqrt(9.8 * k) * 0.75, Q = 0.9;
+          vec2 D = normalize(dir);
+          float f = k * dot(D, p) - w * uTime;
+          float c = cos(f), s = sin(f);
+          A *= fade;
+          n.x -= D.x * k * A * c; n.z -= D.y * k * A * c; n.y -= Q * k * A * s;
+          return vec3(Q * A * D.x * c, A * s, Q * A * D.y * c);
+        }
+        void main(){
+          vec3 p0 = (modelMatrix * vec4(position, 1.0)).xyz;
+          float dist = length(p0.xz - cameraPosition.xz);
+          float fade = 1.0 / (1.0 + dist * 0.012);
+          vec3 n = vec3(0.0, 1.0, 0.0), o = vec3(0.0);
+          o += wave(vec2(0.35, 1.0), 38.0, 0.75, p0.xz, fade, n);
+          o += wave(vec2(-0.8, 1.0), 21.0, 0.42, p0.xz, fade, n);
+          o += wave(vec2(1.0, 0.45), 12.0, 0.22, p0.xz, fade, n);
+          o += wave(vec2(-1.0, 0.3), 8.5, 0.13, p0.xz, fade, n);
+          o += wave(vec2(-0.2, 1.0), 6.5, 0.09, p0.xz, fade * fade, n);
+          vec3 wp = p0 + o;
+          vW = wp; vN = n; vH = o.y / max(fade, 0.2);
+          gl_Position = projectionMatrix * viewMatrix * vec4(wp, 1.0);
+        }`,
+      fragmentShader: /* glsl */ `
+        uniform float uTime; uniform vec2 uRes;
+        varying vec3 vW; varying vec3 vN; varying float vH;
+        ${SKY_GLSL}
+        void main(){
+          vec3 V = cameraPosition - vW; float dist = length(V); V /= dist;
+          // fine ripples in the normal only
+          vec2 q = vW.xz; float t = uTime;
+          float det = 1.0 / (1.0 + dist * 0.015);
+          vec2 g = vec2(0.0);
+          // ripples from many off-axis directions, so no grid shows
+          const vec2 D1 = vec2(0.82, 0.57), D2 = vec2(-0.37, 0.93), D3 = vec2(0.97, -0.24),
+                     D4 = vec2(-0.71, -0.70), D5 = vec2(0.13, 0.99), D6 = vec2(-0.92, 0.39);
+          g += D1 * cos(dot(D1, q) * 1.9 + t * 1.6);
+          g += D2 * cos(dot(D2, q) * 2.6 - t * 1.9 + 1.3) * 0.8;
+          g += D3 * cos(dot(D3, q) * 3.7 + t * 2.4 + 2.1) * 0.6;
+          g += D4 * cos(dot(D4, q) * 5.3 - t * 2.9 + 0.4) * 0.45;
+          g += D5 * cos(dot(D5, q) * 7.9 + t * 3.5 + 4.2) * 0.3;
+          g += D6 * cos(dot(D6, q) * 11.3 - t * 4.1 + 5.7) * 0.2;
+          vec3 N = normalize(vN + det * 0.09 * vec3(g.x, 0.0, g.y));
+          vec3 col;
+          if (cameraPosition.y > 0.0) {
+            float ndv = max(dot(N, V), 0.0);
+            float fres = 0.02 + 0.98 * pow(1.0 - ndv, 5.0);
+            vec3 R = reflect(-V, N); R.y = abs(R.y);
+            vec3 md = moonDir();
+            float rm = max(dot(R, md), 0.0);
+            vec3 deep = vec3(0.006, 0.03, 0.055) + vec3(0.02, 0.1, 0.12) * clamp(vH * 0.9 + 0.35, 0.0, 1.0) * 0.45;
+            col = mix(deep, skyCol(R), fres);
+            col += vec3(1.0, 0.95, 0.85) * (pow(rm, 900.0) * 2.6 + pow(rm, 160.0) * 0.08);  // moon glitter path
+            col += vec3(0.45, 0.5, 0.7) * smoothstep(0.5, 0.95, vH) * 0.12;                  // faint crests
+            col = mix(col, skyCol(normalize(vec3(-V.x, 0.0, -V.z))), 1.0 - exp(-dist * 0.0032));
+          } else {
+            // seen from below: a bright window straight up, silvery reflection at a slant
+            float c = abs(dot(N, V));
+            float win = smoothstep(0.62, 0.74, c);
+            col = mix(vec3(0.05, 0.25, 0.31), vec3(0.42, 0.72, 0.85), win);
+            col += vec3(0.6, 0.95, 1.0) * pow(c, 24.0) * 0.35;
+            vec3 fogc = mix(vec3(0.09, 0.4, 0.47), vec3(0.02, 0.13, 0.22), smoothstep(0.0, 35.0, -cameraPosition.y));
+            col = mix(col, fogc, 1.0 - exp(-dist * 0.03));
+          }
+          vec2 vq = gl_FragCoord.xy / uRes - 0.5;   // same vignette as the backdrop
+          col *= 1.0 - dot(vq, vq) * 0.9;
+          gl_FragColor = vec4(col, 1.0);
+        }`,
+    });
+    const mesh = new THREE.Mesh(g, m);
+    mesh.frustumCulled = false;
+    scene.add(mesh);
+    return mesh;
+  })();
 
   // ---------- particles ----------
   // kind 0 stars, 1 fireflies, 2 bubbles, 3 marine snow
@@ -123,7 +229,7 @@ function start() {
       vec3 p = position; float t = uTime;
       float size = 1.0; vAlpha = 1.0; vTw = aRand.w;
       if (uKind < 0.5) {             // stars
-        size = 0.18 + aRand.x * 0.35;
+        size = (0.18 + aRand.x * 0.35) * 2.8;
         vAlpha = 0.55 + 0.45 * sin(t * (0.6 + aRand.y * 2.5) + aRand.z * 6.28);
       } else if (uKind < 1.5) {      // fireflies wander
         p += vec3(sin(t*0.31*(0.6+aRand.x) + aRand.z*6.28) * 3.0,
@@ -187,7 +293,10 @@ function start() {
     return pts;
   }
   const R = (a, b) => a + Math.random() * (b - a);
-  cloud(0, 900, '#e8ecff', () => [R(-110, 110), R(4, SKY + 30), R(-60, -25)]);
+  cloud(0, 900, '#e8ecff', () => {   // a dome of stars far away, all above the horizon
+    const el = Math.asin(R(0.04, 0.95)), az = R(-1.4, 1.4), r = 200;
+    return [Math.sin(az) * Math.cos(el) * r, TOP + Math.sin(el) * r, 30 - Math.cos(az) * Math.cos(el) * r];
+  });
   cloud(1, 70, '#ffd27a', () => [R(-34, 34), R(6, 42), R(-12, 12)]);
   cloud(2, 260, '#bff6ff', () => [R(-40, 40), R(DEEP, 0), R(-20, 12)]);
   cloud(3, 700, '#9fd8e0', () => [R(-60, 60), R(DEEP, 0), R(-30, 15)]);
@@ -347,6 +456,7 @@ function start() {
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
     U.uAspect.value = camera.aspect;
+    renderer.getDrawingBufferSize(U.uRes.value);
     U.uScale.value = innerHeight / 2 / Math.tan(THREE.MathUtils.degToRad(FOV / 2));
   }
   addEventListener('resize', resize);
@@ -363,8 +473,13 @@ function start() {
     camY += (target - camY) * (reduced ? 1 : Math.min(1, dt * 4));
     mx += (tmx - mx) * Math.min(1, dt * 2); my += (tmy - my) * Math.min(1, dt * 2);
     camera.position.set(mx * 4, camY - my * 2, 30);
-    camera.lookAt(mx * 1.5, camY, 0);
+    // look up a little while high above the sea so the horizon sits low, level out near the water
+    const pitch = Math.max(0, Math.min(1, camY / TOP)) * 0.2;
+    camera.lookAt(mx * 1.5, camY + Math.tan(pitch) * 30, 0);
+    camera.updateMatrixWorld();
+    U.uCamRot.value.setFromMatrix4(camera.matrixWorld);
     U.uCamY.value = camY; U.uCamX.value = mx * 4;
+    ocean.visible = camY > -48;
     for (const j of jellies) {
       const d = j.userData;
       j.position.set(d.x + Math.sin(clock * 0.1 + d.ph) * 3, d.y + Math.sin(clock * d.sp + d.ph) * 2.2, d.z);
