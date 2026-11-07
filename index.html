@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SwingDog Studios | Stories, games and worlds made for wonder</title>
-<meta name="description" content="SwingDog Studios is a small Minnesota studio making worlds for wonder: BigUnda, Chasing Wonder, Rust and Rain and Christoff Elling.">
+<title>SwingDog Studios | Chasing wonder in the natural world</title>
+<meta name="description" content="SwingDog Studios is a small Minnesota studio chasing wonder in the natural world: the Chasing Wonder reef series, the BigUnda aquarium planner, the Molly Marine reef game, Rust and Rain and Christoff Elling.">
 <meta name="theme-color" content="#070a1f">
 <link rel="canonical" href="https://swingdogstudios.com/">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="SwingDog Studios">
 <meta property="og:title" content="SwingDog Studios">
-<meta property="og:description" content="Stories, games and worlds made for wonder.">
+<meta property="og:description" content="Chasing wonder in the natural world. Learn it. Restore it. Express it.">
 <meta property="og:image" content="https://swingdogstudios.com/og.png">
 <meta property="og:url" content="https://swingdogstudios.com/">
 <meta name="twitter:card" content="summary_large_image">
@@ -29,7 +29,7 @@
       "url": "https://swingdogstudios.com/",
       "logo": "https://swingdogstudios.com/logo.png",
       "image": "https://swingdogstudios.com/og.png",
-      "description": "An independent Minnesota studio making stories, games and worlds made for wonder: BigUnda, Chasing Wonder, Rust and Rain and Christoff Elling.",
+      "description": "An independent Minnesota studio chasing wonder in the natural world: Chasing Wonder, BigUnda, Molly Marine, Rust and Rain and Christoff Elling.",
       "email": "hello@swingdogstudios.com",
       "founder": { "@type": "Person", "name": "Blake Vosburgh" },
       "address": { "@type": "PostalAddress", "addressRegion": "MN", "addressCountry": "US" }
@@ -99,6 +99,7 @@
   .card .more a{text-decoration:none;color:var(--sea);border-bottom:1px solid rgba(127,227,224,.4)}
   .card .more a:hover{border-color:var(--sea)}
   .card .soon{color:var(--muted);font-weight:600}
+  .card.wide{grid-column:1/-1}
   .reveal{opacity:0;transform:translateY(24px);transition:opacity .9s ease,transform .9s ease}
   .reveal.in{opacity:1;transform:none}
 
@@ -146,7 +147,7 @@
 <main>
   <header class="hero" id="top">
     <img src="logo.png" width="679" height="760" alt="SwingDog Studios logo: a happy scruffy dog on a rope swing hanging from a curving tree">
-    <h1>Stories, games and worlds made for <em>wonder</em>.</h1>
+    <h1>Chasing <em>wonder</em> in the natural world.</h1>
     <a class="dive" href="#work">Dive in<span></span></a>
   </header>
 
@@ -156,10 +157,22 @@
       <h2 class="reveal">From the night sky to the sea floor</h2>
       <div class="grid">
         <article class="card reveal">
-          <span class="tag">Fantasy novel</span>
-          <h3>Christoff Elling</h3>
-          <p>A fantasy novel in progress, for anyone who still looks for doors in old trees.</p>
-          <div class="more"><span class="soon">Being written</span></div>
+          <span class="tag">YouTube series</span>
+          <h3>Chasing Wonder</h3>
+          <p>A 720-gallon reef grows in a Minnesota basement, from empty room to living ocean. Each episode follows the build, the science and the curiosity behind it.</p>
+          <div class="more"><span class="soon">Coming soon</span></div>
+        </article>
+        <article class="card reveal">
+          <span class="tag">Aquarium planner</span>
+          <h3>BigUnda</h3>
+          <p>Build your space. Grow your aquarium. Make it real. Design a tank in a 3D model of your own room, learn what it takes to keep it thriving, and watch it grow in before you buy a thing. Planning is free.</p>
+          <div class="more"><a href="https://bigunda.com">Visit bigunda.com</a></div>
+        </article>
+        <article class="card reveal">
+          <span class="tag">iPhone and Android game</span>
+          <h3>Molly Marine</h3>
+          <p>Marine biologist Molly Marine has big ideas and even bigger enthusiasm. Help her grow a single coral head into a thriving lagoon in a short, cheerful reef game for all ages.</p>
+          <div class="more"><span class="soon">Coming soon</span></div>
         </article>
         <article class="card reveal">
           <span class="tag">VR game · Meta Quest 3</span>
@@ -167,17 +180,11 @@
           <p>A new marine biologist comes to Indonesia's Coral Triangle to save the reef. A storm strands her on a forbidden island. A first-person VR adventure for Meta Quest 3.</p>
           <div class="more"><span class="soon">In development</span></div>
         </article>
-        <article class="card reveal">
-          <span class="tag">YouTube series</span>
-          <h3>Chasing Wonder</h3>
-          <p>Following the build of a 720-gallon basement reef, from empty room to living ocean, and the curiosity that drives it.</p>
-          <div class="more"><span class="soon">Coming soon</span></div>
-        </article>
-        <article class="card reveal">
-          <span class="tag">Ocean builder</span>
-          <h3>BigUnda</h3>
-          <p>Build your space. Grow your aquarium. Make it real. Design a tank in a 3D model of your own room, watch it grow in over months, then buy the real gear.</p>
-          <div class="more"><a href="https://bigunda.com">Visit bigunda.com</a></div>
+        <article class="card wide reveal">
+          <span class="tag">Fantasy novel</span>
+          <h3>Christoff Elling</h3>
+          <p>A fantasy novel in progress, for anyone who still looks for doors in old trees.</p>
+          <div class="more"><span class="soon">Being written</span></div>
         </article>
       </div>
     </div>
@@ -186,10 +193,10 @@
   <section id="about">
     <div class="wrap">
       <p class="kicker reveal">About</p>
-      <h2 class="reveal">A small studio with a big sense of wonder</h2>
+      <h2 class="reveal">Learn it. Restore it. Express it.</h2>
       <div class="about reveal">
-        <p>SwingDog Studios is an independent studio in the Twin Cities area of Minnesota. We make the kinds of things we wanted as kids: worlds to build, oceans to explore and stories to get lost in. We take our time getting them right.</p>
-        <p>The studio was founded by Blake Vosburgh, a product leader who spent nearly two decades building and scaling software before turning to games, simulation and storytelling.</p>
+        <p>SwingDog Studios is an independent studio in the Twin Cities area of Minnesota, founded by Blake Vosburgh, a product leader who spent nearly two decades building and scaling software. Everything we make starts from one idea: chase wonder in the natural world, learn how it works, help restore it, and make something beautiful with it.</p>
+        <p>Chasing Wonder, BigUnda and Molly Marine are built to work together. The show sparks the curiosity, BigUnda teaches you to plan and care for a real reef, and Molly brings the joy of the ocean to everyone. Each one points back to protecting and restoring the real thing. Rust and Rain and Christoff Elling are the bigger stories we're telling along the way.</p>
       </div>
     </div>
   </section>
